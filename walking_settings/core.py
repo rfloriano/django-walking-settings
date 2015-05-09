@@ -13,7 +13,11 @@ from django.conf import settings as django_settings
 def load_settings():
     from walking_settings.models import Settings
     for data in Settings.objects.all():
-        set_settings(data.name, data.value, True)
+        set_settings(
+            data.name,
+            data.value,
+            hasattr(django_settings, data.name)
+        )
 
 
 def set_settings(name, value, keep_old=False):
