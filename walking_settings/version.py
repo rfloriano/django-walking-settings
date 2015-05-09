@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of elementary-test-generator.
-# https://github.com/rflorianobr/elementary-test-generator
+# https://github.com/rfloriano/elementary-test-generator
 
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/MIT-license

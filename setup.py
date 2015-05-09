@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of django-walking-settings.
-# https://github.com/rflorianobr/django-walking-settings
+# https://github.com/rfloriano/django-walking-settings
 
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/MIT-license
@@ -37,7 +37,7 @@ Enjoy it ;)
     keywords='django walking settings live',
     author='Rafael Floriano da Silva',
     author_email='rflorianobr@gmail.com',
-    url='https://github.com/rflorianobr/django-walking-settings',
+    url='https://github.com/rfloriano/django-walking-settings',
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',
