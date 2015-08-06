@@ -174,6 +174,12 @@ class LoadTestCase(BaseWalkingSettingsTestCase):
         models.signals.post_delete.disconnect(core.delete_settings, sender=Settings)
         super(LoadTestCase, cls).setUpClass(*args, **kwargs)
 
+    @classmethod
+    def tearDownClass(cls, *args, **kwargs):
+        models.signals.post_save.connect(core.add_settings, sender=Settings)
+        models.signals.post_delete.connect(core.delete_settings, sender=Settings)
+        super(LoadTestCase, cls).tearDownClass(*args, **kwargs)
+
     def test_can_load_settings(self):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
         core.load_settings()
