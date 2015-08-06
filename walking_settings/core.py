@@ -7,23 +7,32 @@
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/MIT-license
 # Copyright (c) 2015, Rafael Floriano da Silva <rflorianobr@gmail.com>
-from django.conf import settings as django_settings
+from datetime import datetime
+
+from django.conf import settings
 
 
-def load_settings():
+_last_modified = None
+
+
+def load_settings(query=None):
+    global _last_modified
     from walking_settings.models import Settings
-    for data in Settings.objects.all():
+    if query is None:
+        query = Settings.objects.all()
+    for data in query:
         set_settings(
             data.name,
             data.value,
-            hasattr(django_settings, data.name)
+            hasattr(settings, data.name)
         )
+    _last_modified = datetime.utcnow()
 
 
 def set_settings(name, value, keep_old=False):
     from walking_settings.models import ShadowSettings
     if keep_old:
-        old_value = getattr(django_settings, name, '<NOVALUE>')
+        old_value = getattr(settings, name, '<NOVALUE>')
         if old_value != '<NOVALUE>':
             shadow, _ = ShadowSettings.objects.get_or_create(name=name)
             shadow.value = old_value
@@ -32,7 +41,7 @@ def set_settings(name, value, keep_old=False):
         value = eval(value)
     except Exception:
         pass
-    setattr(django_settings, name, value)
+    setattr(settings, name, value)
 
 
 def del_settings(name):
@@ -42,7 +51,7 @@ def del_settings(name):
         set_settings(name, old_settings.value, False)
         old_settings.delete()
     except ShadowSettings.DoesNotExist:
-        delattr(django_settings, name)
+        delattr(settings, name)
 
 
 def add_settings(sender, instance, created, **kwargs):

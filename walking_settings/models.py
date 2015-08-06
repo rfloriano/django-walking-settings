@@ -16,6 +16,7 @@ from walking_settings import core
 class BaseSettings(models.Model):
     name = models.CharField(_('name'), max_length=200)
     value = models.CharField(_('value'), max_length=500)
+    last_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True
