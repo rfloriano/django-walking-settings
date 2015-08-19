@@ -11,8 +11,10 @@ from datetime import datetime
 
 from django.conf import settings
 
+from walking_settings.cache import WalkingSettingsCache
 
 _last_modified = None
+cache = WalkingSettingsCache()
 
 
 def load_settings(query=None):
@@ -42,6 +44,7 @@ def set_settings(name, value, keep_old=False):
     except Exception:
         pass
     setattr(settings, name, value)
+    cache.set_changes('set', name, value)
 
 
 def del_settings(name):
@@ -52,6 +55,7 @@ def del_settings(name):
         old_settings.delete()
     except ShadowSettings.DoesNotExist:
         delattr(settings, name)
+        cache.set_changes('del', name)
 
 
 def add_settings(sender, instance, created, **kwargs):
