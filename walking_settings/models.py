@@ -13,28 +13,17 @@ from django.utils.translation import ugettext_lazy as _
 from walking_settings import core
 
 
-class BaseSettings(models.Model):
+class Settings(models.Model):
     name = models.CharField(_('name'), max_length=200)
     value = models.CharField(_('value'), max_length=500)
     last_modified = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        abstract = True
-
     def __unicode__(self):
         return self.name
 
-
-class Settings(BaseSettings):
     class Meta:
         verbose_name = _('Settings')
         verbose_name_plural = _('Settings')
-
-
-class ShadowSettings(BaseSettings):
-    class Meta:
-        verbose_name = _('Shadow settings')
-        verbose_name_plural = _('Shadow settings')
 
 
 models.signals.post_save.connect(core.add_settings, sender=Settings)

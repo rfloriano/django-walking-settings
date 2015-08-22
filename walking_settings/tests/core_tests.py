@@ -14,7 +14,7 @@ from django.test import override_settings
 from django.db import models
 
 from walking_settings.tests import BaseWalkingSettingsTestCase
-from walking_settings.models import Settings, ShadowSettings
+from walking_settings.models import Settings
 from walking_settings import core
 
 
@@ -26,7 +26,6 @@ class WalkingSettingsTestCase(BaseWalkingSettingsTestCase):
             value='--my-super-value--'
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
-        expect(ShadowSettings.objects.all()).to_length(0)
 
     def test_can_delete_django_settings_via_settings_models(self):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
@@ -35,7 +34,6 @@ class WalkingSettingsTestCase(BaseWalkingSettingsTestCase):
             value='--my-super-value--'
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
-        expect(ShadowSettings.objects.all()).to_length(0)
         conf.delete()
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
 
@@ -43,38 +41,26 @@ class WalkingSettingsTestCase(BaseWalkingSettingsTestCase):
     def test_can_override_django_settings_via_settings_models(self):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_true()
         expect(settings.MY_SUPER_VAR).to_equal('--my-initial-value--')
-        expect(ShadowSettings.objects.all()).to_length(0)
         Settings.objects.create(
             name='MY_SUPER_VAR',
             value='--my-super-value--'
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
-        expect(ShadowSettings.objects.all()).to_length(1)
-        expect(
-            ShadowSettings.objects.get(name='MY_SUPER_VAR').value
-        ).to_equal(u'--my-initial-value--')
 
     @override_settings(MY_SUPER_VAR='--my-initial-value--')
     def test_delete_settings_models_and_default_value_is_used_again(self):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_true()
-        expect(ShadowSettings.objects.all()).to_length(0)
         expect(settings.MY_SUPER_VAR).to_equal('--my-initial-value--')
         conf = Settings.objects.create(
             name='MY_SUPER_VAR',
             value='--my-super-value--'
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
-        expect(ShadowSettings.objects.all()).to_length(1)
-        expect(
-            ShadowSettings.objects.get(name='MY_SUPER_VAR').value
-        ).to_equal(u'--my-initial-value--')
         conf.delete()
         expect(settings.MY_SUPER_VAR).to_equal('--my-initial-value--')
-        expect(ShadowSettings.objects.all()).to_length(0)
 
     @override_settings(MY_SUPER_VAR='--my-initial-value--')
     def test_delete_settings_models_and_default_value_is_used_again_2(self):
-        expect(ShadowSettings.objects.all()).to_length(0)
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_true()
         expect(settings.MY_SUPER_VAR).to_equal('--my-initial-value--')
         conf = Settings.objects.create(
@@ -82,30 +68,20 @@ class WalkingSettingsTestCase(BaseWalkingSettingsTestCase):
             value='--my-super-value--'
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
-        expect(ShadowSettings.objects.all()).to_length(1)
         expect(
             Settings.objects.get(name='MY_SUPER_VAR').value
         ).to_equal(u'--my-super-value--')
-        expect(
-            ShadowSettings.objects.get(name='MY_SUPER_VAR').value
-        ).to_equal(u'--my-initial-value--')
 
         conf.value = '--my-super-value-2--'
         conf.save()
-
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value-2--')
-        expect(ShadowSettings.objects.all()).to_length(1)
         expect(
             Settings.objects.get(name='MY_SUPER_VAR').value
         ).to_equal(u'--my-super-value-2--')
-        expect(
-            ShadowSettings.objects.get(name='MY_SUPER_VAR').value
-        ).to_equal(u'--my-initial-value--')
 
         conf.delete()
 
         expect(settings.MY_SUPER_VAR).to_equal('--my-initial-value--')
-        expect(ShadowSettings.objects.all()).to_length(0)
 
     def test_can_get_unicode_data(self):
         conf = Settings.objects.create(

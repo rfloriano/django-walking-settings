@@ -14,31 +14,29 @@ from django.conf import settings
 from walking_settings.cache import WalkingSettingsCache
 
 _last_modified = None
+__old_walking_settings = {}
 cache = WalkingSettingsCache()
+
+
+class NoValue(object):
+    pass
 
 
 def load_settings(query=None):
     global _last_modified
-    from walking_settings.models import Settings
     if query is None:
+        from walking_settings.models import Settings
         query = Settings.objects.all()
     for data in query:
-        set_settings(
-            data.name,
-            data.value,
-            hasattr(settings, data.name)
-        )
+        set_settings(data.name, data.value)
     _last_modified = datetime.utcnow()
 
 
-def set_settings(name, value, keep_old=False):
-    from walking_settings.models import ShadowSettings
-    if keep_old:
-        old_value = getattr(settings, name, '<NOVALUE>')
-        if old_value != '<NOVALUE>':
-            shadow, _ = ShadowSettings.objects.get_or_create(name=name)
-            shadow.value = old_value
-            shadow.save()
+def set_settings(name, value):
+    old_value = getattr(settings, name, NoValue)
+    if old_value != NoValue and name not in __old_walking_settings:
+        __old_walking_settings[name] = old_value
+
     try:
         value = eval(value)
     except Exception:
@@ -48,18 +46,15 @@ def set_settings(name, value, keep_old=False):
 
 
 def del_settings(name):
-    from walking_settings.models import ShadowSettings
-    try:
-        old_settings = ShadowSettings.objects.get(name=name)
-        set_settings(name, old_settings.value, False)
-        old_settings.delete()
-    except ShadowSettings.DoesNotExist:
+    if name in __old_walking_settings:
+        setattr(settings, name, __old_walking_settings[name])
+    else:
         delattr(settings, name)
-        cache.set_changes('del', name)
+    cache.set_changes('del', name)
 
 
 def add_settings(sender, instance, created, **kwargs):
-    set_settings(instance.name, instance.value, created)
+    set_settings(instance.name, instance.value)
 
 
 def delete_settings(sender, instance, **kwargs):
