@@ -7,6 +7,7 @@
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/MIT-license
 # Copyright (c) 2015, Rafael Floriano da Silva <rflorianobr@gmail.com>
+import mock
 from preggy import expect
 from django.conf import settings
 
@@ -23,7 +24,9 @@ class WalkingSettingsCacheTestCase(BaseWalkingSettingsTestCase):
         core.cache._add_pid_to_cached_pids()
         core.cache.pid = self.real_pid
 
-    def test_can_create_django_settings_via_settings_models(self):
+    @mock.patch('walking_settings.cache.WalkingSettingsCache._pid_is_alive',
+                return_value=True)
+    def test_can_cache_changes(self, fake_pid_is_alive):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
         Settings.objects.create(
             name='MY_SUPER_VAR',
@@ -31,12 +34,19 @@ class WalkingSettingsCacheTestCase(BaseWalkingSettingsTestCase):
         )
         expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
         expect(core.cache.get_changes()).to_be_empty()
-        expect(core.cache._get_cached_pids()).to_equal(
-            [self.real_pid, self.fake_pid]
-        )
         expect(core.cache._get_cached_changes()).to_equal({
             self.fake_pid: {
                 'MY_SUPER_VAR': {'action': 'set', 'value': '--my-super-value--'}
             },
             self.real_pid: {}
         })
+
+    def test_can_cache_changes_to_alive_pid(self):
+        expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
+        Settings.objects.create(
+            name='MY_SUPER_VAR',
+            value='--my-super-value--'
+        )
+        expect(settings.MY_SUPER_VAR).to_equal('--my-super-value--')
+        expect(core.cache.get_changes()).to_be_empty()
+        expect(core.cache._get_cached_changes()).to_equal({self.real_pid: {}})
