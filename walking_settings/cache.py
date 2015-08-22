@@ -20,6 +20,7 @@ class WalkingSettingsCache(object):
         self.cache = cache
         self.pid = os.getpid()
         self._add_pid_to_cached_pids()
+        self._initialized = False
 
     def _add_pid_to_cached_pids(self):
         self.cache.set(CACHE_CHANGES_KEY, self._get_cached_changes())
@@ -37,7 +38,16 @@ class WalkingSettingsCache(object):
             return False
         return True
 
+    def initialize(self):
+        self._initialized = True
+
+    def is_initialized(self):
+        return self._initialized
+
     def set_changes(self, action, key, value=None):
+        if not self._initialized:
+            return
+
         data = self.cache.get(CACHE_CHANGES_KEY)
         dead_pids = []
         for pid, actions in data.items():

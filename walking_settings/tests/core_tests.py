@@ -16,6 +16,7 @@ from django.db import models
 from walking_settings.tests import BaseWalkingSettingsTestCase
 from walking_settings.models import Settings
 from walking_settings import core
+from walking_settings.cache import CACHE_CHANGES_KEY
 
 
 class WalkingSettingsTestCase(BaseWalkingSettingsTestCase):
@@ -149,6 +150,7 @@ class LoadTestCase(BaseWalkingSettingsTestCase):
         models.signals.post_save.disconnect(core.add_settings, sender=Settings)
         models.signals.post_delete.disconnect(core.delete_settings, sender=Settings)
         super(LoadTestCase, cls).setUpClass(*args, **kwargs)
+        core.cache._initialized = False
 
     @classmethod
     def tearDownClass(cls, *args, **kwargs):
@@ -156,20 +158,36 @@ class LoadTestCase(BaseWalkingSettingsTestCase):
         models.signals.post_delete.connect(core.delete_settings, sender=Settings)
         super(LoadTestCase, cls).tearDownClass(*args, **kwargs)
 
-    def test_can_load_settings(self):
+    def set_cache(self, action, name, value=None):
+        cache = {'action': action}
+        if value:
+            cache['value'] = value
+        core.cache.cache.set(CACHE_CHANGES_KEY, {
+            core.cache.pid: {name: cache}
+        })
+
+    @mock.patch('logging.warn')
+    def test_can_load_settings(self, mocked_logging):
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_false()
         core.load_settings()
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_true()
 
-        Settings.objects.create(
+        obj = Settings.objects.create(
             name='MY_SUPER_VAR_2',
             value='foo bar'
         )
+        self.set_cache('set', obj.name, obj.value)
         expect(hasattr(settings, 'MY_SUPER_VAR_2')).to_be_false()
-        core.load_settings(
-            query=Settings.objects.filter(
-                last_modified__gte=core._last_modified
-            )
-        )
+        core.load_settings()
         expect(hasattr(settings, 'MY_SUPER_VAR')).to_be_true()
         expect(hasattr(settings, 'MY_SUPER_VAR_2')).to_be_true()
+
+        self.set_cache('del', obj.name)
+        core.load_settings()
+        expect(hasattr(settings, 'MY_SUPER_VAR_2')).to_be_false()
+
+        self.set_cache('unknow', obj.name)
+        core.load_settings()
+        mocked_logging.assert_called_with(
+            'Unknow action for unknow, ignoring MY_SUPER_VAR_2'
+        )

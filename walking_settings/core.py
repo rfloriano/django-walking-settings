@@ -7,13 +7,11 @@
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/MIT-license
 # Copyright (c) 2015, Rafael Floriano da Silva <rflorianobr@gmail.com>
-from datetime import datetime
-
+import logging
 from django.conf import settings
 
 from walking_settings.cache import WalkingSettingsCache
 
-_last_modified = None
 __old_walking_settings = {}
 cache = WalkingSettingsCache()
 
@@ -23,13 +21,31 @@ class NoValue(object):
 
 
 def load_settings(query=None):
-    global _last_modified
+    if cache.is_initialized():
+        load_from_cache()
+    else:
+        load_from_database(query)
+        cache.initialize()
+
+
+def load_from_database(query=None):
     if query is None:
         from walking_settings.models import Settings
         query = Settings.objects.all()
     for data in query:
         set_settings(data.name, data.value)
-    _last_modified = datetime.utcnow()
+
+
+def load_from_cache():
+    for name, data in cache.get_changes().items():
+        if data['action'] == 'set':
+            set_settings(name, data['value'])
+        elif data['action'] == 'del':
+            del_settings(name)
+        else:
+            logging.warn('Unknow action for {0}, ignoring {1}'.format(
+                data['action'], name)
+            )
 
 
 def set_settings(name, value):
